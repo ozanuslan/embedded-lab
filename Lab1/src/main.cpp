@@ -152,12 +152,11 @@ void count(unsigned int inc, int del)
 }
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
-  while (!Serial) { // Serial portun hazır olmasını bekle.
+  while (!Serial) {
     ;
   }
-  Serial.println("---SETUP START---");
+  Serial.println("\n---SETUP START---");
   Serial.println("Serial has been set up");
   
   pinMode(pin0, OUTPUT);
@@ -171,7 +170,6 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   Serial.println("Starting a fresh counting sequence");
   unsigned int inc = getCounterIncrement();
   unsigned int del = getCounterDelay();
