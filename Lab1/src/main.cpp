@@ -54,29 +54,7 @@ void blinkPin(int pin, int d)
   turnOff(pin);
 }
 
-void setup()
-{
-  // put your setup code here, to run once:
-  Serial.begin(9600);
-  while (!Serial)
-  {
-    ;
-  }
-  Serial.println("---SETUP START---");
-  Serial.println("Serial has been set up");
-
-  pinMode(pin0, OUTPUT);
-  pinMode(pin1, OUTPUT);
-  pinMode(pin2, OUTPUT);
-  pinMode(pin3, OUTPUT);
-  pinMode(pin4, OUTPUT);
-  Serial.println("Pin[0-4] initialized");
-
-  Serial.println("---SETUP COMPLETE---\n");
-}
-
-int getCounterIncrement()
-{
+int getCounterIncrement() {
   int inc = 0;
 
   do
@@ -173,8 +151,26 @@ void count(unsigned int inc, int del)
   }
 }
 
-void loop()
-{
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  while (!Serial) { // Serial portun hazır olmasını bekle.
+    ;
+  }
+  Serial.println("---SETUP START---");
+  Serial.println("Serial has been set up");
+  
+  pinMode(pin0, OUTPUT);
+  pinMode(pin1, OUTPUT);
+  pinMode(pin2, OUTPUT);
+  pinMode(pin3, OUTPUT);
+  pinMode(pin4, OUTPUT);
+  Serial.println("Pin[0-4] initialized");
+  
+  Serial.println("---SETUP COMPLETE---\n");
+}
+
+void loop() {
   // put your main code here, to run repeatedly:
   Serial.println("Starting a fresh counting sequence");
   unsigned int inc = getCounterIncrement();
