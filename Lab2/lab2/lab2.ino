@@ -150,9 +150,10 @@ void writeToBuffer(char *text, char *buffer, int idx)
    * idx = 26                          ^
    * buffer = " 16 charactersA "
    */
+  const int text_len = strlen(text);
   for (int i = 0; i < 16; i++)
   {
-    buffer[i] = text[(idx + i) % strlen(text)];
+    buffer[i] = text[(idx + i) % text_len];
   }
   buffer[16] = '\0';
 }
