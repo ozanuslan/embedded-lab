@@ -277,12 +277,13 @@ void setup()
   Serial.begin(9600);
   while (!Serial)
     ;
-  Serial.println("---SETUP START---");
+  Serial.println("\n---SETUP START---");
   Serial.println("Serial Initialized");
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
+  lcd.print("LCD INITIALIZED");
   Serial.println("LCD Initialized");
-  Serial.println("---SETUP END---");
+  Serial.println("---SETUP END---\n");
 }
 
 void loop()

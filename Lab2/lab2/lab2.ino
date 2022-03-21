@@ -42,6 +42,7 @@
 
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+//LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 void waitInput()
 {
@@ -49,15 +50,20 @@ void waitInput()
     ;
 }
 
+const int big_buff_len = 101;
+
+int lcd_top = 0;
 int lcd_bot = 1;
-char text_top[100] = "This text is for row 0 and longer than 16 characters.";
-char text_bot[100] = "This text is for row 1 and longer than 16 characters.";
+char text_top[big_buff_len] = "";
+char text_bot[big_buff_len] = "";
+char lcd_buf_top[17] = "";
+char lcd_buf_bot[17] = "";
 bool scroll_en_top = 0;
 bool scroll_en_bot = 0;
 bool scroll_dir_top = 0;
 bool scroll_dir_bot = 0;
-int scroll_sp_top = 1000;
-int scroll_sp_bot = 1000;
+int scroll_ms_top = 1000;
+int scroll_ms_bot = 1000;
 
 void printMenu()
 {
@@ -70,7 +76,7 @@ void printMenu()
   Serial.print("3 - SCROLLING DIRECTION : ");
   Serial.println(scroll_dir_top ? "RIGHT" : "LEFT");
   Serial.print("4 - SCROLLING SPEED (MS): ");
-  Serial.println(scroll_sp_top);
+  Serial.println(scroll_ms_top);
   Serial.println("LCD ROW 1 (BOTTOM)");
   Serial.print("5 - TEXT : ");
   Serial.println(text_bot);
@@ -79,7 +85,7 @@ void printMenu()
   Serial.print("7 - SCROLLING DIRECTION : ");
   Serial.println(scroll_dir_bot ? "RIGHT" : "LEFT");
   Serial.print("8 - SCROLLING SPEED (MS): ");
-  Serial.println(scroll_sp_bot);
+  Serial.println(scroll_ms_bot);
   Serial.println("\n9 - START LCD SEQUENCE");
 }
 
@@ -132,15 +138,20 @@ void getText(char *text, int row)
     Serial.print(" (LENGTH [0-100]): ");
     waitInput();
     buf = Serial.readString();
-    if (buf.length() > 100)
+    if (buf.length() > big_buff_len - 1)
     {
       Serial.print("\nINVALID TEXT LENGTH (");
       Serial.print(buf.length());
       Serial.println(")");
     }
-  } while (buf.length() > 100);
+  } while (buf.length() > big_buff_len - 1);
   strcpy(text, buf.c_str());
-  text[100] = '\0';
+  if(buf.length() < 16) {
+    for(int i = buf.length(); i < 16; i++) {
+      text[i] = ' ';
+    }
+  }
+  text[big_buff_len - 1] = '\0';
   Serial.println(text);
 }
 
@@ -150,16 +161,70 @@ void printText(char *text, int row)
   lcd.print(text);
 }
 
+void writeToBuffer(char* text, char* buffer, int idx)
+{
+  for(int i = 0; i < 16; i++) {
+    buffer[i] = text[(idx + i) % strlen(text)];
+  }
+  buffer[16] = '\0';
+}
+
 void startLCDSequence()
 {
+  int top_idx = 0;
+  int bot_idx = 0;
+  int time = 0;
+  int largest_delay = scroll_ms_top > scroll_ms_bot ? scroll_ms_top : scroll_ms_bot;
+
+  // initial print
+  writeToBuffer(text_top, lcd_buf_top, top_idx);
+  printText(lcd_buf_top, lcd_top);
+  writeToBuffer(text_bot, lcd_buf_bot, bot_idx);
+  printText(lcd_buf_bot, lcd_bot);
+
+  while(1) {
+    if(scroll_en_top && time >= scroll_ms_top && time % scroll_ms_top == 0) {
+      if(scroll_dir_top) {
+        top_idx--;
+      } else {
+        top_idx++;
+      }
+      if(top_idx < 0) {
+        top_idx = strlen(text_top) - 1;
+      } else if(top_idx > strlen(text_top) - 1) {
+        top_idx = 0;
+      }
+      writeToBuffer(text_top, lcd_buf_top, top_idx);
+      printText(lcd_buf_top, lcd_top);
+    }
+    if(scroll_en_bot && time >= scroll_ms_bot && time % scroll_ms_bot == 0) {
+      if(scroll_dir_bot) {
+        bot_idx--;
+      } else {
+        bot_idx++;
+      }
+      if(bot_idx < 0) {
+        bot_idx = strlen(text_bot) - 1;
+      } else if(bot_idx > strlen(text_bot) - 1) {
+        bot_idx = 0;
+      }
+      writeToBuffer(text_bot, lcd_buf_bot, bot_idx);
+      printText(lcd_buf_bot, lcd_bot);
+    }
+    time %= largest_delay;
+    
+    delay(1);
+    time+=1;
+  }
 }
 
 void menu()
 {
   printMenu();
-  int choice = getMenuChoice();
+  int choice;
   do
   {
+    choice = getMenuChoice();
     switch (choice)
     {
     case 0:
@@ -175,7 +240,7 @@ void menu()
       scroll_dir_top = getScrollDir();
       break;
     case 4:
-      scroll_sp_top = getScrollSpeed();
+      scroll_ms_top = getScrollSpeed();
       break;
     case 5:
       getText(text_bot, 1);
@@ -187,23 +252,23 @@ void menu()
       scroll_dir_bot = getScrollDir();
       break;
     case 8:
-      scroll_sp_bot = getScrollSpeed();
+      scroll_ms_bot = getScrollSpeed();
+      break;
+    case 9:
+      Serial.println("\nSTARTING LCD SEQUENCE");
+      Serial.println("STARTING IN 3..");
+      delay(1000);
+      Serial.println("STARTING IN 2..");
+      delay(1000);
+      Serial.println("STARTING IN 1..");
+      delay(1000);
+      startLCDSequence();
       break;
     default:
+      Serial.println("\nUNKNOWN CHOICE");
       break;
     }
-    choice = getMenuChoice();
-  } while (choice != 9);
-
-  Serial.println("\nSTARTING LCD SEQUENCE");
-  Serial.println("STARTING IN 3..");
-  delay(1000);
-  Serial.println("STARTING IN 2..");
-  delay(1000);
-  Serial.println("STARTING IN 1..");
-  delay(1000);
-
-  startLCDSequence();
+  } while (1);
 }
 
 void setup()
@@ -211,14 +276,16 @@ void setup()
   Serial.begin(9600);
   while (!Serial)
     ;
+  Serial.println("\n---SETUP START---");
+  Serial.println("Serial Initialized");
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
-  printText(text_top, 0);
-  printText(text_bot, 1);
+  lcd.print("HELLO WORLD");
+  Serial.println("LCD Initialized");
+  Serial.println("---SETUP END---\n");
 }
 
 void loop()
 {
   menu();
 }
-
