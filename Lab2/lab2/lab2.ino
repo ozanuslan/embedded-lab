@@ -91,7 +91,7 @@ int getMenuChoice()
 
 int getScrollSpeed()
 {
-  return getChoice(100, 10000, "PLEASE ENTER SCROLL SPEED (MS)[100-10000]: ", "INVALID SCROLL SPEED");
+  return getChoice(500, 10000, "PLEASE ENTER SCROLL SPEED (MS)[500-10000]: ", "INVALID SCROLL SPEED");
 }
 
 int getScrollDir()
@@ -285,6 +285,7 @@ void setup()
   Serial.println("Serial Initialized");
   // Set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
+  lcd.clear();
   lcd.print("LCD INITIALIZED");
   Serial.println("LCD Initialized");
   Serial.println("---SETUP END---\n");
