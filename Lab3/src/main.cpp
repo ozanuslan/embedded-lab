@@ -129,6 +129,21 @@ int getMenuChoice()
   return getChoice(0, 6, "\nPLEASE ENTER MENU CHOICE [0-6]: ", "INVALID NUMBER, MUST BE BETWEEN 0 AND 6");
 }
 
+void displayCurrentOutput(int idx) {
+  const int len = strlen(sound_string);
+  for(int i = 0; i < len; i++) {
+    char c = sound_string[i];
+    if(idx == i) {
+      Serial.print(">");
+      Serial.print(c);
+      Serial.print("<");
+    } else {
+      Serial.print(c);
+    }
+  }
+  Serial.println();
+}
+
 void playSound()
 {
   const int str_len = strlen(sound_string);
@@ -136,7 +151,7 @@ void playSound()
   {
     for (int i = 0; i < str_len; i++)
     {
-      Serial.println(sound_string[i]);
+      displayCurrentOutput(i);
       if (sound_string[i] == '1')
       {
         turnOn(pin1);
