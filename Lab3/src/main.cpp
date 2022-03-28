@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-const int pin1 = 2;
+const int buzzer_pin = 2;
 const int sound_str_len = 201;
 int sound_duration;
 int silence_duration;
@@ -12,7 +12,7 @@ void setDefaultValues()
   sound_duration = 500;
   silence_duration = 50;
   finish_duration = 1000;
-  sound_string[0] = '\0';
+  strcpy(sound_string, "101011\0");
 }
 
 void setup()
@@ -22,7 +22,7 @@ void setup()
     ;
   Serial.println("--SETUP BEGIN--");
   Serial.println("SERIAL INITIALIZED");
-  pinMode(pin1, OUTPUT);
+  pinMode(buzzer_pin, OUTPUT);
   Serial.println("PIN 1 SET TO OUTPUT");
   setDefaultValues();
   Serial.println("DEFAULT VALUES SET");
@@ -47,7 +47,7 @@ void turnOff(int pin)
 
 void printMenu()
 {
-  Serial.println("0 - PRINT THIS MENU");
+  Serial.println("\n0 - PRINT THIS MENU");
   Serial.print("1 - SET SOUND   DURATION (MS): ");
   Serial.println(sound_duration);
   Serial.print("2 - SET SILENCE DURATION (MS): ");
@@ -56,7 +56,7 @@ void printMenu()
   Serial.println(finish_duration);
   Serial.print("4 - SET SOUND   STRING       : ");
   Serial.println(sound_string);
-  Serial.print("5 - PLAY SOUND");
+  Serial.println("5 - PLAY SOUND");
   Serial.println();
   Serial.println("6 - RESET");
 }
@@ -129,15 +129,21 @@ int getMenuChoice()
   return getChoice(0, 6, "\nPLEASE ENTER MENU CHOICE [0-6]: ", "INVALID NUMBER, MUST BE BETWEEN 0 AND 6");
 }
 
-void displayCurrentOutput(int idx) {
+void displayCurrentOutput(int idx)
+{
   const int len = strlen(sound_string);
-  for(int i = 0; i < len; i++) {
+  Serial.print("STRING: ");
+  for (int i = 0; i < len; i++)
+  {
     char c = sound_string[i];
-    if(idx == i) {
+    if (idx == i)
+    {
       Serial.print(">");
       Serial.print(c);
       Serial.print("<");
-    } else {
+    }
+    else
+    {
       Serial.print(c);
     }
   }
@@ -154,9 +160,9 @@ void playSound()
       displayCurrentOutput(i);
       if (sound_string[i] == '1')
       {
-        turnOn(pin1);
+        turnOn(buzzer_pin);
         delay(sound_duration);
-        turnOff(pin1);
+        turnOff(buzzer_pin);
         delay(silence_duration);
       }
       else
@@ -164,6 +170,7 @@ void playSound()
         delay(sound_duration + silence_duration);
       }
     }
+    Serial.println("FINISHED");
     delay(finish_duration);
   }
 }
