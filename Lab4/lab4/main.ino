@@ -8,7 +8,12 @@ String floatToString(float f)
 {
     char buf[6];
     dtostrf(f, 5, 1, buf);
-    return String(buf);
+    String s = String(buf);
+    if (LANG == 0)
+    {
+        s.replace(".", ",");
+    }
+    return s;
 }
 
 void turkish(float celc, float hum)
@@ -40,29 +45,28 @@ dht11 DHT11;
 
 int LANG = 1;
 int LAST_READ = 1;
-int MILLIS = 0;
-int DELAY = 20;
 
 void setup()
 {
-    // Serial
+    // Serial init
     Serial.begin(9600);
-    // Button input
+    // Button input pin
     pinMode(BTNPIN, INPUT_PULLUP);
     // Temp sensor pins
-    pinMode(2, OUTPUT);
-    digitalWrite(2, LOW);
-    pinMode(3, OUTPUT);
-    digitalWrite(3, HIGH);
-    pinMode(4, INPUT);
+    pinMode(2, OUTPUT);    // GND pin
+    digitalWrite(2, LOW);  // Output LOW
+    pinMode(3, OUTPUT);    // VCC pin
+    digitalWrite(3, HIGH); // Output HIGH
+    pinMode(4, INPUT);     // Sensor pin
     // LCD Begin
     lcd.begin(16, 2);
-    lcd.print("INITIALIZED");
+    lcd.print("INITIALIZED LCD");
     Serial.println("SETUP COMPLETE");
 }
 
 void loop()
 {
+    // Detect language change
     int btn_in = digitalRead(BTNPIN);
     if (LAST_READ == 1 && btn_in == 0)
     {
@@ -70,32 +74,26 @@ void loop()
     }
     LAST_READ = btn_in;
 
-    Serial.println(LANG);
-
-    delay(DELAY);
-
-    MILLIS += DELAY;
-
+    // Try to read sensor data
     int chk = DHT11.read(DHT11PIN);
     if (chk < -1)
     {
         return;
     } // Failed to read correctly
+
+    // Get sensor readings
     float hum = (float)DHT11.humidity;
     float c = (float)DHT11.temperature;
     float f = DHT11.fahrenheit();
 
-    if (MILLIS >= 50)
+    // Print to LCD
+    lcd.clear();
+    if (LANG == 0)
     {
-        lcd.clear();
-        if (LANG == 0)
-        {
-            turkish(c, hum);
-        }
-        else
-        {
-            english(f, hum);
-        }
-        MILLIS = 0;
+        turkish(c, hum);
+    }
+    else
+    {
+        english(f, hum);
     }
 }
