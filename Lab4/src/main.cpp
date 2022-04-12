@@ -2,17 +2,25 @@
 #include <LiquidCrystal.h>
 #include <dht11.h>
 
+#define DHT11PIN 4
+#define BTNPIN 13
+
+dht11 DHT11;
+
+int LANG = 1;
+int LAST_READ = 1;
+
 const int rs = 12, en = 11, d4 = 9, d5 = 8, d6 = 7, d7 = 6;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 String floatToString(float f)
 {
   char buf[6];
-  dtostrf(f, 5, 1, buf);
+  dtostrf(f, 5, 2, buf);
   String s = String(buf);
   if (LANG == 0)
   {
-    s.replace(".", ",");
+    s.replace('.', ',');
   }
   return s;
 }
@@ -38,14 +46,6 @@ void english(float fah, float hum)
   lcd.print("HUM(%): ");
   lcd.print(floatToString(hum));
 }
-
-#define DHT11PIN 4
-#define BTNPIN 13
-
-dht11 DHT11;
-
-int LANG = 1;
-int LAST_READ = 1;
 
 void setup()
 {
@@ -84,7 +84,7 @@ void loop()
 
   // Get sensor readings
   float hum = (float)DHT11.humidity;
-  float c = (float)DHT11.temperature;
+  float c = 5.00f;
   float f = DHT11.fahrenheit();
 
   // Print to LCD
