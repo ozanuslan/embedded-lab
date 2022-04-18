@@ -111,8 +111,9 @@ void setup()
 void loop()
 {
     bool state = digitalRead(SENSOR_PIN);
-    Serial.println((last_state == 0 && state == 1) ? "Motion Detected" : "No Motion");
-    if (last_state == 0 && state == 1)
+    bool isRisingEdge = state && !last_state;
+    Serial.println(isRisingEdge ? "Motion Detected" : "No Motion");
+    if (isRisingEdge)
     {
         int circleMillis;
         digitalWrite(LED_PIN, HIGH);
