@@ -2,25 +2,23 @@
 
 #define LED_PIN 12
 #define SENSOR_PIN 11
+#define A 3                     // A segment on the 7-segment display
+#define B 4                     // B segment
+#define C 5                     // C segment
+#define D 6                     // D segment
+#define E 7                     // E segment
+#define F 8                     // F segment
+#define G 9                     // G segment
+#define DP 10                   // Dot on the corner of the LCD
+#define DELAY_SECONDS 5         // Delay to be used in between motion detection
+#define CIRCLE_DELAY_MILLIS 100 // Delay to be used in between each circle print cycle
+#define SECOND_MILLIS 1000      // Milliseconds in a second
 
-#define A 3
-#define B 4
-#define C 5
-#define D 6
-#define E 7
-#define F 8
-#define G 9
-#define DP 10
-
-bool segMode = 0;
-
-#define DELAY_SECONDS 5
-#define CIRCLE_DELAY_MILLIS 100
-#define SECOND_MILLIS 1000
-
+bool segMode = 0;                   // 0 = Cathode, 1 = Anode
 int seg[]{A, B, C, D, E, F, G, DP}; // segment pins
 byte chars = 16;                    // max value in the array "Chars"
 byte Chars[16][9]{
+    // Corresponding low/high output for each hex number on the 7-segment display
     {'0', 1, 1, 1, 1, 1, 1, 0, 0}, // 0
     {'1', 0, 1, 1, 0, 0, 0, 0, 0}, // 1
     {'2', 1, 1, 0, 1, 1, 0, 1, 0}, // 2
@@ -38,20 +36,10 @@ byte Chars[16][9]{
     {'e', 1, 0, 0, 1, 1, 1, 1, 0}, // E/14
     {'f', 1, 0, 0, 0, 1, 1, 1, 0}, // F/15
 };
-byte circleIdx = 0;
-byte circle[8][8]{
-    {1, 0, 0, 0, 0, 0, 0, 0},
-    {0, 1, 0, 0, 0, 0, 0, 0},
-    {0, 0, 1, 0, 0, 0, 0, 0},
-    {0, 0, 0, 1, 0, 0, 0, 0},
-    {0, 0, 0, 0, 1, 0, 0, 0},
-    {0, 0, 0, 0, 0, 1, 0, 0},
-    {0, 0, 0, 0, 0, 0, 1, 0},
-    {0, 0, 0, 0, 0, 0, 0, 1},
-};
-bool last_state = 0;
+byte circleIdx = 0;  // Index of the current circle drawing cycle
+bool last_state = 0; // Last state of the motion sensor
 
-void setState(bool mode) // sets the hole segment state to "mode"
+void setState(bool mode) // sets the whole segment state to "mode"
 {
     for (int i = 0; i <= 6; i++)
     {
@@ -61,10 +49,7 @@ void setState(bool mode) // sets the hole segment state to "mode"
 
 void printCircle(byte idx) // prints the circle at the index "idx"
 {
-    if (segMode == 0)
-        digitalWrite(seg[idx], HIGH);
-    else
-        digitalWrite(seg[idx], LOW);
+    digitalWrite(seg[idx], !segMode);
 }
 
 void print(int num) // print any number on the segment
@@ -103,7 +88,7 @@ void setup()
     pinMode(seg[4], OUTPUT);
     pinMode(seg[5], OUTPUT);
     pinMode(seg[6], OUTPUT);
-    // pinMode(seg[7], OUTPUT);
+    // pinMode(seg[7], OUTPUT); // uncomment if you want to use the DP (dot on the corner of the lcd)
     pinMode(SENSOR_PIN, INPUT);
     pinMode(LED_PIN, OUTPUT);
 }
