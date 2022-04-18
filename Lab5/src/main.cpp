@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
-#define LED_PIN 11
-#define SENSOR_PIN 12
+#define LED_PIN 12
+#define SENSOR_PIN 11
 
 #define A 3
 #define B 4
@@ -12,9 +12,9 @@
 #define G 9
 #define DP 10
 
-bool segMode = 1;
+bool segMode = 0;
 
-#define DELAY_SECONDS 10
+#define DELAY_SECONDS 5
 #define CIRCLE_DELAY_MILLIS 100
 #define SECOND_MILLIS 1000
 
@@ -111,12 +111,14 @@ void setup()
 void loop()
 {
     bool state = digitalRead(SENSOR_PIN);
+    Serial.println((last_state == 0 && state == 1) ? "Motion Detected" : "No Motion");
     if (last_state == 0 && state == 1)
     {
         int circleMillis;
         digitalWrite(LED_PIN, HIGH);
         for (int i = DELAY_SECONDS; i >= 0; i--) // print
         {
+            Serial.println("Seconds left: " + String(i));
             if (i >= chars)
             {
                 circleMillis = 0;
