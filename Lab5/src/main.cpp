@@ -108,7 +108,7 @@ void loop()
             if (i >= chars)
             {
                 circleMillis = 0;
-                while (circleMillis <= SECOND_MILLIS)
+                while (circleMillis < SECOND_MILLIS)
                 {
                     print(i);
                     delay(CIRCLE_DELAY_MILLIS);
