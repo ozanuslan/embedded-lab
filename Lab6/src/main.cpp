@@ -19,7 +19,7 @@ void setup()
   lcd.print("SETUP STARTED");
 
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  scale.set_scale(0.5);
+  scale.set_scale();
   scale.tare(); // Reset the scale to 0
 
   lcd.clear();
@@ -70,8 +70,8 @@ void loop()
 {
   Serial.print("Reading: ");
   float kg = scale.get_value() / calibration_factor;
-  Serial.print(cull(kg), 1);
-  Serial.print(" kg");
+  Serial.print(kg, 1);
+  Serial.print(" ||| ");
   Serial.print(" calibration_factor: ");
   Serial.print(calibration_factor);
   Serial.println();
@@ -83,9 +83,10 @@ void loop()
     char temp = Serial.read();
     if (temp == 's')
     {
+      Serial.println("Resetting scale");
       scale.set_offset(scale.read_average(5));
       scale.tare();
     }
   }
-  delay(150);
+  delay(300);
 }
