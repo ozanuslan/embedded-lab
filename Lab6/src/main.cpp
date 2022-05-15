@@ -1,92 +1,100 @@
 #include <Arduino.h>
-#include <HX711.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal.h>
+#include <dht11.h>
 
-#define LOADCELL_DOUT_PIN 4
-#define LOADCELL_SCK_PIN 5
+#define DHT11PIN 4
+#define BTNPIN 13
 
-LiquidCrystal_I2C lcd(0x3f, 16, 2);
+dht11 DHT11;
 
-HX711 scale;
-float calibration_factor = -21000;
+int LANG = 1;
+int LAST_READ = 1;
+
+const int rs = 12, en = 11, d4 = 9, d5 = 8, d6 = 7, d7 = 6;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+String floatToString(float f)
+{
+  char buf[6];
+  dtostrf(f, 5, 2, buf);
+  String s = String(buf);
+  if (LANG == 0)
+  {
+    s.replace('.', ',');
+  }
+  return s;
+}
+
+void turkish(float celc, float hum)
+{
+  lcd.setCursor(0, 0);
+  lcd.print("SIC(C): ");
+  lcd.print(floatToString(celc));
+  lcd.print(" TR");
+  lcd.setCursor(0, 1);
+  lcd.print("NEM(%): ");
+  lcd.print(floatToString(hum));
+}
+
+void english(float fah, float hum)
+{
+  lcd.setCursor(0, 0);
+  lcd.print("TEM(F): ");
+  lcd.print(floatToString(fah));
+  lcd.print(" EN");
+  lcd.setCursor(0, 1);
+  lcd.print("HUM(%): ");
+  lcd.print(floatToString(hum));
+}
 
 void setup()
 {
+  // Serial init
   Serial.begin(9600);
-  lcd.begin();
-  lcd.backlight();
-  lcd.print("SETUP STARTED");
-
-  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  scale.set_scale();
-  scale.tare(); // Reset the scale to 0
-
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("KG:  ");
-  lcd.setCursor(0, 1);
-  lcd.print("LB:  ");
-}
-
-float cull(float x)
-{
-  if (x < 0)
-  {
-    return 0;
-  }
-  else
-  {
-    return x;
-  }
-}
-
-void printLCD(float kg)
-{
-  if (kg < 40)
-  {
-    lcd.setCursor(5, 0);
-    lcd.print("           ");
-    lcd.setCursor(5, 0);
-    lcd.print(kg, 1);
-  }
-  else
-  {
-    lcd.setCursor(5, 0);
-    lcd.print("OVER 40 KG");
-    lcd.setCursor(5, 1);
-    lcd.print("           ");
-  }
-  if (kg < 40)
-  {
-    lcd.setCursor(5, 1);
-    lcd.print("           ");
-    lcd.setCursor(5, 1);
-    lcd.print(kg * 2.2046, 1);
-  }
+  // Button input pin
+  pinMode(BTNPIN, INPUT_PULLUP);
+  // Temp sensor pins
+  pinMode(2, OUTPUT);    // GND pin
+  digitalWrite(2, LOW);  // Output LOW
+  pinMode(3, OUTPUT);    // VCC pin
+  digitalWrite(3, HIGH); // Output HIGH
+  pinMode(4, INPUT);     // Sensor pin
+  // LCD Begin
+  lcd.begin(16, 2);
+  lcd.print("INITIALIZED LCD");
+  Serial.println("SETUP COMPLETE");
 }
 
 void loop()
 {
-  Serial.print("Reading: ");
-  float kg = scale.get_value() / calibration_factor;
-  Serial.print(kg, 1);
-  Serial.print(" ||| ");
-  Serial.print(" calibration_factor: ");
-  Serial.print(calibration_factor);
-  Serial.println();
-
-  printLCD(cull(kg));
-
-  if (Serial.available())
+  // Detect language change
+  int btn_in = digitalRead(BTNPIN);
+  if (LAST_READ == 1 && btn_in == 0)
   {
-    char temp = Serial.read();
-    if (temp == 's')
-    {
-      Serial.println("Resetting scale");
-      scale.set_offset(scale.read_average(5));
-      scale.tare();
-    }
+    LANG = LANG ? 0 : 1;
   }
-  delay(300);
+  LAST_READ = btn_in;
+
+  // Try to read sensor data
+  int chk = DHT11.read(DHT11PIN);
+  if (chk < -1)
+  {
+    return;
+  } // Failed to read correctly
+
+  // Get sensor readings
+  float hum = (float)DHT11.humidity;
+  float c = 5.00f;
+  float f = DHT11.fahrenheit();
+
+  // Print to LCD
+  lcd.clear();
+  if (LANG == 0)
+  {
+    turkish(c, hum);
+  }
+  else
+  {
+    english(f, hum);
+  }
 }

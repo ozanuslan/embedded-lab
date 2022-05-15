@@ -1,128 +1,221 @@
 #include <Arduino.h>
 
-#define LED_PIN 12
-#define SENSOR_PIN 11
-#define A 3                     // A segment on the 7-segment display
-#define B 4                     // B segment
-#define C 5                     // C segment
-#define D 6                     // D segment
-#define E 7                     // E segment
-#define F 8                     // F segment
-#define G 9                     // G segment
-#define DP 10                   // Dot on the corner of the LCD
-#define DELAY_SECONDS 5         // Delay to be used in between motion detection
-#define CIRCLE_DELAY_MILLIS 100 // Delay to be used in between each circle print cycle
-#define SECOND_MILLIS 1000      // Milliseconds in a second
+const int buzzer_pin = 2;
+const int sound_str_len = 201;
+int sound_duration;
+int silence_duration;
+int finish_duration;
+char sound_string[sound_str_len];
 
-bool segMode = 0;                   // 0 = Cathode, 1 = Anode
-int seg[]{A, B, C, D, E, F, G, DP}; // segment pins
-byte chars = 16;                    // max value in the array "Chars"
-byte Chars[16][9]{
-    // Corresponding low/high output for each hex number on the 7-segment display
-    {'0', 1, 1, 1, 1, 1, 1, 0, 0}, // 0
-    {'1', 0, 1, 1, 0, 0, 0, 0, 0}, // 1
-    {'2', 1, 1, 0, 1, 1, 0, 1, 0}, // 2
-    {'3', 1, 1, 1, 1, 0, 0, 1, 0}, // 3
-    {'4', 0, 1, 1, 0, 0, 1, 1, 0}, // 4
-    {'5', 1, 0, 1, 1, 0, 1, 1, 0}, // 5
-    {'6', 1, 0, 1, 1, 1, 1, 1, 0}, // 6
-    {'7', 1, 1, 1, 0, 0, 0, 0, 0}, // 7
-    {'8', 1, 1, 1, 1, 1, 1, 1, 0}, // 8
-    {'9', 1, 1, 1, 1, 0, 1, 1, 0}, // 9
-    {'a', 1, 1, 1, 0, 1, 1, 1, 0}, // A/10
-    {'b', 0, 0, 1, 1, 1, 1, 1, 0}, // b/11
-    {'c', 1, 0, 0, 1, 1, 1, 0, 0}, // C/12
-    {'d', 0, 1, 1, 1, 1, 0, 1, 0}, // d/13
-    {'e', 1, 0, 0, 1, 1, 1, 1, 0}, // E/14
-    {'f', 1, 0, 0, 0, 1, 1, 1, 0}, // F/15
-};
-byte circleIdx = 0;  // Index of the current circle drawing cycle
-bool last_state = 0; // Last state of the motion sensor
-
-void setState(bool mode) // sets the whole segment state to "mode"
+void setDefaultValues()
 {
-    for (int i = 0; i <= 6; i++)
-    {
-        digitalWrite(seg[i], mode);
-    }
-}
-
-void printCircle(byte idx) // prints the circle at the index "idx"
-{
-    digitalWrite(seg[idx], !segMode);
-}
-
-void print(int num) // print any number on the segment
-{
-    setState(segMode); // turn off the segment
-    if (num >= chars)  // if the number is not declared
-    {
-        printCircle((circleIdx++) % 6); // print the circle
-    }
-    else // else if the number declared, print it
-    {
-        if (segMode == 0)
-        { // for segment mode
-            for (int i = 0; i < 8; i++)
-            {
-                digitalWrite(seg[i], Chars[num][i + 1]);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < 8; i++)
-            {
-                digitalWrite(seg[i], !Chars[num][i + 1]);
-            }
-        }
-    }
+  sound_duration = 500;
+  silence_duration = 50;
+  finish_duration = 1000;
+  strcpy(sound_string, "101011\0");
 }
 
 void setup()
 {
-    Serial.begin(9600);
-    pinMode(seg[0], OUTPUT);
-    pinMode(seg[1], OUTPUT);
-    pinMode(seg[2], OUTPUT);
-    pinMode(seg[3], OUTPUT);
-    pinMode(seg[4], OUTPUT);
-    pinMode(seg[5], OUTPUT);
-    pinMode(seg[6], OUTPUT);
-    // pinMode(seg[7], OUTPUT); // uncomment if you want to use the DP (dot on the corner of the lcd)
-    pinMode(SENSOR_PIN, INPUT);
-    pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  while (!Serial)
+    ;
+  Serial.println("--SETUP BEGIN--");
+  Serial.println("SERIAL INITIALIZED");
+  pinMode(buzzer_pin, OUTPUT);
+  Serial.println("PIN 1 SET TO OUTPUT");
+  setDefaultValues();
+  Serial.println("DEFAULT VALUES SET");
+  Serial.println("--SETUP END--");
+}
+
+void waitSerialInput()
+{
+  while (!Serial.available())
+    ;
+}
+
+void turnOn(int pin)
+{
+  digitalWrite(pin, HIGH);
+}
+
+void turnOff(int pin)
+{
+  digitalWrite(pin, LOW);
+}
+
+void printMenu()
+{
+  Serial.println("\n0 - PRINT THIS MENU");
+  Serial.print("1 - SET SOUND   DURATION (MS): ");
+  Serial.println(sound_duration);
+  Serial.print("2 - SET SILENCE DURATION (MS): ");
+  Serial.println(silence_duration);
+  Serial.print("3 - SET FINISH  DURATION (MS): ");
+  Serial.println(finish_duration);
+  Serial.print("4 - SET SOUND   STRING       : ");
+  Serial.println(sound_string);
+  Serial.println("5 - PLAY SOUND");
+  Serial.println();
+  Serial.println("6 - RESET");
+}
+
+int getChoice(int min, int max, char *msg, char *err)
+{
+  int choice;
+
+  do
+  {
+    Serial.print(msg);
+    waitSerialInput();
+    choice = Serial.parseInt();
+    Serial.println(choice);
+    if (choice < min || choice > max)
+    {
+      Serial.println(err);
+    }
+  } while (choice < min || choice > max);
+
+  return choice;
+}
+
+void getSoundString(char *str)
+{
+  String buf = "";
+  bool containsOtherThan0or1;
+  bool isValidString = false;
+  do
+  {
+    containsOtherThan0or1 = false;
+
+    Serial.print("ENTER SOUND STRING (LENGTH [1-");
+    Serial.print(sound_str_len - 1);
+    Serial.print("]): ");
+    waitSerialInput();
+    buf = Serial.readString();
+    Serial.println(buf);
+    if (buf.length() > sound_str_len - 1 || buf.length() < 1)
+    {
+      Serial.print("\nINVALID TEXT LENGTH (");
+      Serial.print(buf.length());
+      Serial.println(")");
+    }
+    else
+    {
+      for (int i = 0; i < buf.length(); i++)
+      {
+        if (buf.charAt(i) != '0' && buf.charAt(i) != '1')
+        {
+          containsOtherThan0or1 = true;
+        }
+      }
+      if (containsOtherThan0or1)
+      {
+        Serial.println("\nINVALID TEXT (CONTAINS CHARACTERS OTHER THAN 0 OR 1)");
+      }
+      else
+      {
+        isValidString = true;
+      }
+    }
+  } while (!isValidString);
+  strcpy(str, buf.c_str());
+  str[buf.length()] = '\0';
+}
+
+int getMenuChoice()
+{
+  return getChoice(0, 6, "\nPLEASE ENTER MENU CHOICE [0-6]: ", "INVALID NUMBER, MUST BE BETWEEN 0 AND 6");
+}
+
+void displayCurrentOutput(int idx)
+{
+  const int len = strlen(sound_string);
+  Serial.print("STRING: ");
+  for (int i = 0; i < len; i++)
+  {
+    char c = sound_string[i];
+    if (idx == i)
+    {
+      Serial.print(">");
+      Serial.print(c);
+      Serial.print("<");
+    }
+    else
+    {
+      Serial.print(c);
+    }
+  }
+  Serial.println();
+}
+
+void playSound()
+{
+  const int str_len = strlen(sound_string);
+  while (true)
+  {
+    for (int i = 0; i < str_len; i++)
+    {
+      displayCurrentOutput(i);
+      if (sound_string[i] == '1')
+      {
+        turnOn(buzzer_pin);
+        delay(sound_duration);
+        turnOff(buzzer_pin);
+        delay(silence_duration);
+      }
+      else
+      {
+        delay(sound_duration + silence_duration);
+      }
+    }
+    Serial.println("FINISHED");
+    delay(finish_duration);
+  }
+}
+
+void menu()
+{
+  printMenu();
+  int choice;
+  do
+  {
+    choice = getMenuChoice();
+    switch (choice)
+    {
+    case 0:
+      printMenu();
+      break;
+    case 1:
+      sound_duration = getChoice(10, 10000, "PLEASE ENTER SOUND DURATION (MS)[10-10000]: ", "INVALID NUMBER, MUST BE BETWEEN 0 AND 10000");
+      break;
+    case 2:
+      silence_duration = getChoice(0, 10000, "PLEASE ENTER SILENCE DURATION (MS)[0-10000]: ", "INVALID NUMBER, MUST BE BETWEEN 0 AND 10000");
+      break;
+    case 3:
+      finish_duration = getChoice(0, 10000, "PLEASE ENTER FINISH DURATION (MS)[0-10000]: ", "INVALID NUMBER, MUST BE BETWEEN 0 AND 10000");
+      break;
+    case 4:
+      getSoundString(sound_string);
+      break;
+    case 5:
+      Serial.println("STARTING SOUND IN 3..");
+      delay(1000);
+      Serial.println("STARTING SOUND IN 2..");
+      delay(1000);
+      Serial.println("STARTING SOUND IN 1..");
+      delay(1000);
+      playSound();
+      break;
+    case 6:
+      setDefaultValues();
+      break;
+    }
+  } while (true);
 }
 
 void loop()
 {
-    bool state = digitalRead(SENSOR_PIN);
-    bool isRisingEdge = state && !last_state;
-    Serial.println(isRisingEdge ? "Motion Detected" : "No Motion");
-    if (isRisingEdge)
-    {
-        int circleMillis;
-        digitalWrite(LED_PIN, HIGH);
-        for (int i = DELAY_SECONDS; i >= 0; i--) // print
-        {
-            Serial.println("Seconds left: " + String(i));
-            if (i >= chars)
-            {
-                circleMillis = 0;
-                while (circleMillis < SECOND_MILLIS)
-                {
-                    print(i);
-                    delay(CIRCLE_DELAY_MILLIS);
-                    circleMillis += CIRCLE_DELAY_MILLIS;
-                }
-            }
-            else
-            {
-                print(i);
-                delay(SECOND_MILLIS);
-            }
-        }
-        digitalWrite(LED_PIN, LOW);
-    }
-    setState(segMode);
-    last_state = state;
+  menu();
 }
