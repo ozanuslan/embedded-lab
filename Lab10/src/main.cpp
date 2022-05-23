@@ -20,7 +20,7 @@ int Current_Freq = 0;           // ms
 int Update_Freq = 500;          // ms
 int Update_LCD = 200;           // ms
 
-int Prev_Millis = 0; // ms timestamp of last loop iteration
+unsigned long Prev_Millis = 0; // ms timestamp of last loop iteration
 
 int LCD_Timer = 0;     // time passed since last LCD update
 int Freq_Timer = 0;    // time passed since last frequency update
@@ -89,13 +89,9 @@ void loop()
   // printLcd(display_dist, display_freq);
 
   // Update current millis
-  int curr_millis = millis();
-  int time_passed = curr_millis - Prev_Millis;
+  unsigned long curr_millis = millis();
+  unsigned long time_passed = curr_millis - Prev_Millis;
   Prev_Millis = curr_millis;
-
-  LCD_Timer += time_passed;
-  Freq_Timer += time_passed;
-  LED_Buz_Timer += time_passed;
 
   float raw_cur_dist = hc.dist();
   float raw_cur_freq = calcFreq(raw_cur_dist, Dist_Min, Dist_Max, Buzzer_LED_Freq_Max, Buzzer_LED_Freq_Min);
@@ -107,8 +103,15 @@ void loop()
     LCD_Timer %= Update_LCD;
     float display_dist = cur_dist;
     float display_freq = cur_freq;
+    unsigned long before_lcd_print = millis();
     printLcd(display_dist, display_freq);
+    time_passed += millis() - before_lcd_print;
+    curr_millis = millis();
   }
+
+  LCD_Timer += time_passed;
+  Freq_Timer += time_passed;
+  LED_Buz_Timer += time_passed;
 
   if (Freq_Timer >= Update_Freq)
   {
