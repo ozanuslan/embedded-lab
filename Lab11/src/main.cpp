@@ -14,8 +14,8 @@
 #define RIGHT_BUTTON A0 // Right button input on A0 pin
 
 #define FWD_PIN 2
-#define BCK_PIN 3
-#define PWM_PIN 13
+#define BCK_PIN 13
+#define PWM_PIN 3
 
 bool SEGMODE = 0;                    // 0 = Cathode, 1 = Anode
 int SEGS[]{A, B, C, D, E, F, G, DP}; // segment pins
@@ -68,10 +68,30 @@ void printSegment(int num) // print any number on the segment
 
 bool LAST_RIGHT_READ = 1;
 bool LAST_LEFT_READ = 1;
-const int MAX_STEP = 4;
+const int MAX_STEP = 5;
+const int MAX_SPEED = 255;
 int STEP = 0;
 
-// L293 motor(PWM_PIN, FWD_PIN, BCK_PIN);
+void controlMotor(int step)
+{
+  if (step > 0)
+  {
+    digitalWrite(BCK_PIN, LOW);
+    digitalWrite(FWD_PIN, HIGH);
+  }
+  else if (step < 0)
+  {
+    digitalWrite(FWD_PIN, LOW);
+    digitalWrite(BCK_PIN, HIGH);
+  }
+  else
+  {
+    digitalWrite(FWD_PIN, LOW);
+    digitalWrite(BCK_PIN, LOW);
+  }
+  int pwm = abs(step) * MAX_SPEED / MAX_STEP;
+  analogWrite(PWM_PIN, pwm > MAX_SPEED ? MAX_SPEED : pwm);
+}
 
 void setup()
 {
@@ -91,14 +111,10 @@ void setup()
   pinMode(BCK_PIN, OUTPUT);
 
   digitalWrite(PWM_PIN, HIGH);
-  // analogWrite(FWD_PIN, 800);
-  digitalWrite(FWD_PIN, HIGH);
+  digitalWrite(FWD_PIN, LOW);
   digitalWrite(BCK_PIN, LOW);
 
-  // analogWrite(BCK_PIN, 0);
-
   printSegment(STEP);
-  // motor.forward(50);
 }
 
 void loop()
@@ -127,5 +143,8 @@ void loop()
   }
   //-------------------------------//
 
+  //----- MOTOR CONTROL -----//
+  controlMotor(STEP);
+  //-----------------------//
   delay(50);
 }
